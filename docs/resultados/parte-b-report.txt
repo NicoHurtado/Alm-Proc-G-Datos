@@ -1,0 +1,21 @@
+== Conteos
+publicados                 12,000
+guardados en DynamoDB      11,051
+descartados                   949
+guardados + descartados    12,000  -> CUADRA
+
+== Publicados por tipo vs. resultado en DynamoDB
+tipo                      publicados   en DynamoDB
+valid                         11,051        11,051
+duplicate_event                  217           217
+invalid_json                     116           116
+invalid_offer_value              260           260
+invalid_process_id               139           139
+missing_supplier_nit             217           217
+
+== Retraso de envío a DynamoDB (ms)
+promedio         161
+mediana          142
+p95              231
+máximo         2,973
+mínimo            93

@@ -1,0 +1,9 @@
+$ python3 parte-b/scripts/publish_events.py --count 12000
+publicados: 12,000 en 95.8 s (125 eventos/s)
+  valid                  11,051
+  invalid_offer_value       260
+  missing_supplier_nit      217
+  duplicate_event           217
+  invalid_process_id        139
+  invalid_json              116
+detalle: published_events.csv
