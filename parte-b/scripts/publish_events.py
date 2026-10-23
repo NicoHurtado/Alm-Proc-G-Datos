@@ -111,7 +111,7 @@ def build_messages(count, seed):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--count", type=int, default=12000)
-    parser.add_argument("--workers", type=int, default=16)
+    parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--seed", type=int, default=262)
     parser.add_argument("--region", default="us-east-1")
     parser.add_argument("--output", default="published_events.csv")

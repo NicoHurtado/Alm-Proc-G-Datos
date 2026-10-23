@@ -130,11 +130,11 @@ Es la misma pregunta en las tres capas ([05_compare.sql](parte-a/sql/05_compare.
 
 Cada consulta se ejecutó 3 veces en Athena (engine v3); el tiempo es la mediana del tiempo de ejecución del motor.
 
-| Capa   | Formato                   | Datos escaneados              | Tiempo de ejecución | Frente a bronce               |
-| ------ | ------------------------- | ----------------------------- | ------------------- | ----------------------------- |
-| Bronce | JSON Lines + gzip         | 416,07 MB (436.279.332 bytes) | 47,51 s             | —                             |
-| Plata  | Iceberg (Parquet)         | 6,21 MB (6.508.593 bytes)     | 1,29 s              | 67 veces menos datos, 37 veces más rápida  |
-| Oro    | Iceberg (Parquet), agregada | 0,05 MB (48.813 bytes)      | 0,97 s              | 8.938 veces menos datos, 49 veces más rápida |
+| Capa   | Formato                     | Datos escaneados              | Tiempo de ejecución | Frente a bronce                               |
+| ------ | --------------------------- | ----------------------------- | ------------------- | --------------------------------------------- |
+| Bronce | JSON Lines + gzip           | 416,07 MB (436.279.332 bytes) | 47,00 s             | —                                             |
+| Plata  | Iceberg (Parquet)           | 6,21 MB (6.512.480 bytes)     | 1,35 s              | 67 veces menos datos, 35 veces más rápida     |
+| Oro    | Iceberg (Parquet), agregada | 0,05 MB (49.287 bytes)        | 0,67 s              | 8.852 veces menos datos, 70 veces más rápida  |
 
 **Interpretación:**
 
@@ -205,7 +205,7 @@ Los válidos se guardan con los tipos de DynamoDB (`offer_value` como número) y
 
 `python3 parte-b/scripts/publish_events.py --count 12000` y luego `python3 parte-b/scripts/report.py`. Alrededor del 8 % de los eventos se publica dañado a propósito.
 
-Ejecutado el 22/10/2026: 12.000 eventos publicados en 95,8 s (125 eventos/s). La salida completa de `report.py` está en [docs/resultados/parte-b-report.txt](docs/resultados/parte-b-report.txt).
+Ejecutado el 22/10/2026: 12.000 eventos publicados en 375 s (32 eventos/s, con 4 hilos). La salida completa de `report.py` está en [docs/resultados/parte-b-report.txt](docs/resultados/parte-b-report.txt).
 
 | Concepto                | Eventos    |
 | ----------------------- | ---------- |
@@ -224,13 +224,15 @@ Ejecutado el 22/10/2026: 12.000 eventos publicados en 95,8 s (125 eventos/s). La
 
 | Retraso envío → DynamoDB | ms    |
 | ------------------------ | ----- |
-| Promedio                 | 161   |
-| Mediana                  | 142   |
-| p95                      | 231   |
-| Máximo                   | 2.973 |
-| Mínimo                   | 93    |
+| Promedio                 | 718   |
+| Mediana                  | 440   |
+| p95                      | 2.378 |
+| Máximo                   | 6.753 |
+| Mínimo                   | 84    |
 
-`sent_at` lo toma el reloj del computador que publica y `stored_at` el de la Lambda, así que el retraso incluye la diferencia entre los dos relojes (sincronizados por NTP, del orden de milisegundos). Los 8 eventos más lentos (1,8 a 3,0 s) se publicaron en el primer segundo, cuando las primeras ejecuciones de la Lambda estaban arrancando en frío. El primer 10 % de los eventos promedia 290 ms y el resto 147 ms.
+`sent_at` lo toma el reloj del computador que publica y `stored_at` el de la Lambda, así que el retraso incluye la diferencia entre los dos relojes (sincronizados por NTP, del orden de milisegundos).
+
+El trigger de SQS está limitado a 2 ejecuciones de la Lambda en paralelo (_Maximum concurrency_), para no pasar los límites del Learner Lab. Por eso, cuando llegan más eventos de los que esas ejecuciones alcanzan a procesar, los mensajes esperan en la cola, y el retraso crece hacia el final de la publicación: el primer quinto de los eventos promedia 537 ms y el último 1.247 ms. Los 5 eventos más lentos (5,9 a 6,8 s) se publicaron entre los segundos 295 y 342.
 
 ---
 

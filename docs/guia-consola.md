@@ -10,6 +10,7 @@ Lo demás se hace desde la terminal con la AWS CLI, después de crear los recurs
 - [3. Cola de SQS](#3-cola-de-sqs)
 - [4. Función Lambda](#4-función-lambda)
 - [5. Regla de IoT Core](#5-regla-de-iot-core)
+- [6. Ubicación de resultados de Athena](#6-ubicación-de-resultados-de-athena)
 - [Después de crear los recursos](#después-de-crear-los-recursos)
 - [Al terminar: borrar todo](#al-terminar-borrar-todo)
 
@@ -17,11 +18,13 @@ Lo demás se hace desde la terminal con la AWS CLI, después de crear los recurs
 
 ## 0. CloudFormation sin stacks
 
-**CloudFormation → Stacks.** Si quedan stacks de los laboratorios (`big-data-labs-...`), vacíe primero sus buckets en S3 y después borre los stacks.
+Esta guía es para una cuenta de **AWS Academy Learner Lab**. Las notas que dicen _Cuenta personal_ son para una cuenta normal de AWS.
 
-**Si la cuenta es de AWS Academy Learner Lab**, va a ver un stack con un nombre como `c225165a...t1w<id de la cuenta>`, con la descripción _"associate Learner Lab template (academy)"_. **No lo borre.** Lo crea AWS Academy al iniciar el laboratorio y monta el rol `LabRole` y los permisos de la cuenta; sin él, el laboratorio deja de funcionar. En el video se muestra que es el único stack y que no es nuestro (pestaña **Template** o **Resources**).
+**CloudFormation → Stacks.** En Learner Lab siempre aparece un stack de AWS Academy (_"associate Learner Lab template (academy)"_). **No lo borre:** monta el rol `LabRole` y los permisos del laboratorio. Si quedan stacks de los laboratorios del curso (`big-data-labs-...`), vacíe primero sus buckets y después borre esos stacks.
 
-En Learner Lab tampoco se pueden crear roles de IAM: la Lambda y la regla de IoT usan el rol existente **`LabRole`**.
+En Learner Lab no se pueden crear roles de IAM: la Lambda y la regla de IoT usan el rol existente **`LabRole`**.
+
+_Cuenta personal:_ CloudFormation debe quedar sin ningún stack.
 
 ## 1. Bucket de S3
 
@@ -71,7 +74,9 @@ En Learner Lab tampoco se pueden crear roles de IAM: la Lambda y la regla de IoT
 | Runtime        | **Python 3.13**                                          |
 | Execution role | Abra **Additional settings** → en el rol de ejecución elija **Use an existing role** → **`LabRole`** |
 
-→ **Create function**. Si aparece un error de `iam:CreateRole`, es porque no se cambió el rol: Learner Lab no deja crear roles. El código se carga después desde la terminal. `LabRole` ya tiene permisos para leer de SQS y escribir en DynamoDB.
+→ **Create function**. Si aparece un error de `iam:CreateRole`, es porque no se cambió el rol. El código se carga después desde la terminal.
+
+_Cuenta personal:_ deje el rol por defecto. Después, en **Configuration → Permissions →** clic en el rol → **Add permissions → Attach policies**, agregue `AWSLambdaSQSQueueExecutionRole` y `AmazonDynamoDBFullAccess`.
 
 **Trigger:** de vuelta en la función, **Add trigger**:
 
@@ -80,8 +85,9 @@ En Learner Lab tampoco se pueden crear roles de IAM: la Lambda y la regla de IoT
 | Source     | SQS                  |
 | SQS queue  | `secop-offers-queue` |
 | Batch size | 10                   |
+| Maximum concurrency | **2**       |
 
-→ **Add**.
+→ **Add**. Si no ve _Maximum concurrency_, abra **Additional settings** del trigger. Limita la Lambda a 2 ejecuciones en paralelo, para no pasar los límites del laboratorio.
 
 ## 5. Regla de IoT Core
 
@@ -95,7 +101,19 @@ En Learner Lab tampoco se pueden crear roles de IAM: la Lambda y la regla de IoT
 | Rule action         | **Simple Queue Service (SQS)** → queue `secop-offers-queue` → Use Base64 encoding: **No**     |
 | IAM role            | El rol existente **`LabRole`**                                                                |
 
-→ **Next → Create**. En Learner Lab la consola muestra el error _"We can't create a policy for the role LabRole to perform action sqs"_. Se puede cerrar: la regla queda creada y activa, y `LabRole` ya tiene permiso para enviar mensajes a SQS.
+→ **Next → Create**. La consola muestra el error _"We can't create a policy for the role LabRole to perform action sqs"_. Se puede cerrar: la regla queda creada y activa, y `LabRole` ya tiene permiso para enviar a SQS.
+
+_Cuenta personal:_ **Create new role** → `secop-iot-to-sqs`.
+
+## 6. Ubicación de resultados de Athena
+
+**Athena → Query editor → Settings → Manage**
+
+| Campo                          | Valor                                  |
+| ------------------------------ | -------------------------------------- |
+| Location of query result       | `s3://<su bucket>/athena-results/`     |
+
+→ **Save**. Así el editor de Athena funciona para mostrar las consultas en el video.
 
 ---
 
@@ -105,7 +123,7 @@ Esto se corre desde la terminal con la AWS CLI conectada a la cuenta (`aws confi
 
 1. **Lambda:** cargar `parte-b/lambda/lambda_function.py` y configurar timeout de 30 s y las variables `OFFERS_TABLE` y `REJECTED_TABLE` (`aws lambda update-function-code`, `update-function-configuration`).
 2. **S3:** subir `data/secop_procesos.jsonl.gz` a `bronze/secop_processes/` (`aws s3 cp`).
-3. **Athena:** fijar la ubicación de resultados del workgroup `primary` en `s3://<bucket>/athena-results/` y correr en orden los archivos de `parte-a/sql/` (`aws athena start-query-execution`). Las consultas quedan en **Recent queries** del editor de Athena para mostrarlas en el video.
+3. **Athena:** correr en orden los archivos de `parte-a/sql/` (`aws athena start-query-execution`). Las consultas quedan en **Recent queries** del editor de Athena para mostrarlas en el video.
 4. **Eventos:** `python3 parte-b/scripts/publish_events.py --count 12000` y luego `python3 parte-b/scripts/report.py`.
 
 ---
@@ -118,4 +136,5 @@ Esto se corre desde la terminal con la AWS CLI conectada a la cuenta (`aws confi
 4. Lambda: borrar `secop-offers-consumer`.
 5. SQS: borrar `secop-offers-queue`.
 6. DynamoDB: borrar `secop_offers` y `secop_offers_rejected`.
-7. CloudWatch → Log groups: borrar `/aws/lambda/secop-offers-consumer`.
+7. _Cuenta personal:_ IAM → Roles: borrar `secop-offers-consumer-role-...` y `secop-iot-to-sqs`.
+8. CloudWatch → Log groups: borrar `/aws/lambda/secop-offers-consumer`.

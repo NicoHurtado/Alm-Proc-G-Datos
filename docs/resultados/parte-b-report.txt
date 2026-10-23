@@ -14,8 +14,8 @@ invalid_process_id               139           139
 missing_supplier_nit             217           217
 
 == Retraso de envío a DynamoDB (ms)
-promedio         161
-mediana          142
-p95              231
-máximo         2,973
-mínimo            93
+promedio         718
+mediana          440
+p95            2,378
+máximo         6,753
+mínimo            84

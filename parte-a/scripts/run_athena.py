@@ -4,7 +4,8 @@ Uso:
     python3 parte-a/scripts/run_athena.py parte-a/sql/01_bronze.sql \
         --bucket trabajo1-apgd [--only 2 3] [--repeat 3]
 
-Reemplaza YOUR_BUCKET por el bucket, espera cada consulta y muestra el
+Reemplaza YOUR_BUCKET por el bucket, guarda los resultados en
+s3://<bucket>/athena-results/, espera cada consulta y muestra el
 resultado, los datos escaneados y el tiempo de ejecución que reporta Athena.
 Las consultas quedan en el historial (Recent queries) del editor de Athena.
 """
@@ -27,9 +28,11 @@ def split_statements(sql):
     return statements
 
 
-def run(athena, sql, workgroup):
+def run(athena, sql, workgroup, output):
     query_id = athena.start_query_execution(
-        QueryString=sql, WorkGroup=workgroup)["QueryExecutionId"]
+        QueryString=sql,
+        WorkGroup=workgroup,
+        ResultConfiguration={"OutputLocation": output})["QueryExecutionId"]
     while True:
         execution = athena.get_query_execution(
             QueryExecutionId=query_id)["QueryExecution"]
@@ -79,7 +82,8 @@ def main():
             continue
         print(f"\n=== Sentencia {number}: {statement.splitlines()[0][:70]}")
         for attempt in range(args.repeat):
-            query_id, execution = run(athena, statement, args.workgroup)
+            query_id, execution = run(athena, statement, args.workgroup,
+                                      f"s3://{args.bucket}/athena-results/")
             status = execution["Status"]
             stats = execution.get("Statistics", {})
             scanned = stats.get("DataScannedInBytes", 0)

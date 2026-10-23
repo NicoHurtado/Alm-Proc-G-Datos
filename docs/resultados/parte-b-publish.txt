@@ -1,5 +1,5 @@
 $ python3 parte-b/scripts/publish_events.py --count 12000
-publicados: 12,000 en 95.8 s (125 eventos/s)
+publicados: 12,000 en 375.0 s (32 eventos/s)
   valid                  11,051
   invalid_offer_value       260
   missing_supplier_nit      217
