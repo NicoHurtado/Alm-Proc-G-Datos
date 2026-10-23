@@ -253,9 +253,3 @@ Serían ≈1.300 millones de filas y del orden de terabytes:
 IoT Core → SQS → Lambda → DynamoDB está bien para eventos sueltos de muchos dispositivos y para volúmenes de cientos a pocos miles de eventos por segundo. Cada evento se cobra varias veces (IoT, regla, SQS, invocación de Lambda, escritura en DynamoDB) y no hay orden ni relectura.
 
 Con un flujo **sostenido de varios miles de eventos por segundo**, o cuando haga falta **orden por proceso, releer la historia o tener varios consumidores**, lo cambiaríamos por **Amazon Kinesis Data Streams** (o MSK/Kafka si el volumen es aún mayor). Kinesis agrupa los eventos en shards ordenados por llave, los guarda varios días para reprocesar, y puede llevarlos a S3 con Firehose para la analítica en el lakehouse, como en el laboratorio 5. Las ofertas a procesos públicos no llegan desde dispositivos IoT, así que IoT Core no aporta nada a esa escala.
-
----
-
-## Borrar los recursos
-
-Se sigue la sección "Al terminar: borrar todo" de [docs/guia-consola.md](docs/guia-consola.md#al-terminar-borrar-todo).
